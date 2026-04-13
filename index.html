@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ResumeIQ — AI Resume Tailor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --card: #16161f;
+      --border: rgba(255,255,255,0.07);
+      --accent: #7c6bff;
+      --accent2: #ff6b9d;
+      --accent3: #6bffd8;
+      --text: #f0eeff;
+      --muted: #7a7a9a;
+      --success: #6bffd8;
+      --error: #ff6b6b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 20%, rgba(124,107,255,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(255,107,157,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 60% 10%, rgba(107,255,216,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Grain texture */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeDown 0.7s ease both;
+    }
+
+    .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(32px, 6vw, 48px);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      margin-bottom: 14px;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, var(--accent3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 300;
+      line-height: 1.6;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* Steps indicator */
+    .steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 36px;
+      animation: fadeDown 0.7s 0.1s ease both;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .step.active { color: var(--text); }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+    }
+
+    .step.active .step-num {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .step.done .step-num {
+      background: var(--accent3);
+      border-color: var(--accent3);
+      color: var(--bg);
+    }
+
+    .step-line {
+      width: 40px;
+      height: 1px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px;
+      animation: fadeUp 0.7s 0.15s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.5;
+    }
+
+    /* Form fields */
+    .field {
+      margin-bottom: 22px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    label .req {
+      color: var(--accent2);
+      margin-left: 2px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 300;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,107,255,0.12);
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: rgba(122,122,154,0.5);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+      line-height: 1.6;
+    }
+
+    /* File drop zone */
+    .file-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: var(--surface);
+      position: relative;
+    }
+
+    .file-zone:hover, .file-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(124,107,255,0.05);
+    }
+
+    .file-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .file-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .file-zone-text {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    .file-zone-text strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .file-name {
+      display: none;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--accent3);
+      font-weight: 500;
+    }
+
+    .file-name.visible { display: block; }
+
+    /* Submit button */
+    .btn {
+      width: 100%;
+      padding: 15px 32px;
+      background: linear-gradient(135deg, var(--accent), #9d6bff);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover::after { opacity: 1; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(124,107,255,0.4); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn.loading .spinner { display: block; }
+    .btn.loading .btn-text { opacity: 0.7; }
+
+    /* Status messages */
+    .status {
+      display: none;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 400;
+      margin-top: 16px;
+      line-height: 1.5;
+      border: 1px solid;
+    }
+
+    .status.success {
+      display: block;
+      background: rgba(107,255,216,0.08);
+      border-color: rgba(107,255,216,0.25);
+      color: var(--accent3);
+    }
+
+    .status.error {
+      display: block;
+      background: rgba(255,107,107,0.08);
+      border-color: rgba(255,107,107,0.25);
+      color: var(--error);
+    }
+
+    /* Field validation */
+    input.invalid, textarea.invalid {
+      border-color: var(--error) !important;
+      box-shadow: 0 0 0 3px rgba(255,107,107,0.12);
+    }
+
+    .field-error {
+      font-size: 12px;
+      color: var(--error);
+      margin-top: 5px;
+      display: none;
+    }
+
+    .field-error.visible { display: block; }
+
+    /* Features row */
+    .features {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+      animation: fadeUp 0.7s 0.25s ease both;
+    }
+
+    .feature {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 14px;
+      text-align: center;
+    }
+
+    .feature-icon { font-size: 20px; margin-bottom: 6px; }
+    .feature-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      line-height: 1.4;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+    }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 40px 16px 60px; }
+      .card { padding: 24px 20px; }
+      .features { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo-mark">
+      <div class="logo-icon">✦</div>
+      <span class="logo-text">ResumeIQ</span>
+    </div>
+    <h1>Tailor your resume<br/>with <span>AI precision</span></h1>
+    <p class="subtitle">Upload your resume and job description. Our AI rewrites it to match the role in seconds.</p>
+  </div>
+
+  <div class="card">
+    <form id="resumeForm" novalidate>
+
+      <div class="field">
+        <label for="name">Full Name <span class="req">*</span></label>
+        <input type="text" id="name" name="name" placeholder="e.g. Sateesh Reddy Maddi" autocomplete="name" />
+        <div class="field-error" id="name-error">Please enter your name</div>
+      </div>
+
+      <div class="field">
+        <label for="gmail">Gmail Address <span class="req">*</span></label>
+        <input type="email" id="gmail" name="gmail" placeholder="yourname@gmail.com" autocomplete="email" />
+        <div class="field-error" id="gmail-error">Please enter a valid email</div>
+      </div>
+
+      <hr class="divider"/>
+
+      <div class="field">
+        <label for="resume">Resume (PDF) <span class="req">*</span></label>
+        <div class="file-zone" id="fileZone">
+          <input type="file" id="resume" name="resume" accept=".pdf,.doc,.docx" />
+          <span class="file-icon">📄</span>
+          <div class="file-zone-text">
+            <strong>Click to upload</strong> or drag & drop<br/>
+            PDF, DOC, DOCX — max 10MB
+          </div>
+          <div class="file-name" id="fileName"></div>
+        </div>
+        <div class="field-error" id="resume-error">Please upload your resume</div>
+      </div>
+
+      <div class="field">
+        <label for="jobDescription">Job type <span class="req">*</span></label>
+        <textarea id="jobDescription" name="jobDescription" placeholder="Paste the full job description here — role, responsibilities, required skills, qualifications…"></textarea>
+        <div class="field-error" id="jd-error">Please paste the job type u need</div>
+      </div>
+
+      <button type="submit" class="btn" id="submitBtn">
+        <div class="btn-inner">
+          <div class="spinner"></div>
+          <span class="btn-text">✦ Generate Tailored Resume</span>
+        </div>
+      </button>
+
+    </form>
+
+    <div class="status" id="statusMsg"></div>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-label">AI rewrite<br/>in seconds</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🎯</div>
+      <div class="feature-label">ATS-optimized<br/>output</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📧</div>
+      <div class="feature-label">Delivered to<br/>your inbox</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const N8N_WEBHOOK_URL = "https://sateeshreddy-n8n.duckdns.org/webhook-test/resume-writter";
+
+  const fileInput  = document.getElementById('resume');
+  const fileZone   = document.getElementById('fileZone');
+  const fileNameEl = document.getElementById('fileName');
+  const name  = document.getElementById('name');
+  const gmail = document.getElementById('gmail');
+  const jd    = document.getElementById('jobDescription');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) {
+      fileNameEl.textContent = '✓ ' + fileInput.files[0].name;
+      fileNameEl.classList.add('visible');
+      fileZone.style.borderColor = 'var(--accent3)';
+    }
+  });
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+  function clearError(id) {
+    document.getElementById(id).classList.remove('visible');
+  }
+
+  function validate() {
+    let ok = true;
+    if (!name.value.trim()) { showError('name-error', 'Please enter your name'); name.classList.add('invalid'); ok = false; }
+    else { clearError('name-error'); name.classList.remove('invalid'); }
+
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gmail.value.trim());
+    if (!emailOk) { showError('gmail-error', 'Please enter a valid email'); gmail.classList.add('invalid'); ok = false; }
+    else { clearError('gmail-error'); gmail.classList.remove('invalid'); }
+
+    if (!fileInput.files || !fileInput.files[0]) { showError('resume-error', 'Please upload your resume'); ok = false; }
+    else clearError('resume-error');
+
+    if (jd.value.trim().length < 10) { showError('jd-error', 'Please paste the job description'); jd.classList.add('invalid'); ok = false; }
+    else { clearError('jd-error'); jd.classList.remove('invalid'); }
+
+    return ok;
+  }
+
+  document.getElementById('resumeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    const btn = document.getElementById('submitBtn');
+    const status = document.getElementById('statusMsg');
+    status.className = 'status';
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+    document.querySelector('.btn-text').textContent = 'Processing…';
+
+    const formData = new FormData();
+    formData.append('Name', name.value.trim());
+    formData.append('Gmail', gmail.value.trim());
+    formData.append('Resume', fileInput.files[0]);
+    formData.append('jobDescription', jd.value.trim());
+
+    try {
+      const res = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        status.className = 'status success';
+        status.innerHTML = `<strong>✓ Submitted!</strong> Check your email shortly.`;
+        document.getElementById('resumeForm').reset();
+        fileNameEl.classList.remove('visible');
+        fileZone.style.borderColor = '';
+      } else {
+        throw new Error(`Server error: ${res.status}`);
+      }
+    } catch (err) {
+      status.className = 'status error';
+      status.innerHTML = `<strong>Error:</strong> ${err.message}`;
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      document.querySelector('.btn-text').textContent = '✦ Generate Tailored Resume';
+    }
+  });
+</script>
+</body>
+</html>
